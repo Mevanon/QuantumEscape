@@ -5,10 +5,12 @@ using UnityEngine.SceneManagement;
 
 public class MenuController : MonoBehaviour {
 
+    Animator _animator;
     // ------------------------------------------------------------------------
 	void Start ()
     {
-
+        _animator = Camera.main.transform.GetChild(0).GetComponent<Animator>();
+        _animator.Play("Menu_Show");
     }
 	
     // ------------------------------------------------------------------------
@@ -25,9 +27,8 @@ public class MenuController : MonoBehaviour {
             case 0:
                 // -- New Game
 
-                // <Init Stuff if neeeded>
-
-                SceneManager.LoadScene(1);
+                _animator.Play("Menu_Hide");
+                GameMaster._gameMaster.ChangeGameScene(1);
 
                 break;
             case 1:

@@ -13,7 +13,6 @@ public class QuantumObject : MonoBehaviour {
     Vector3 _rotation = new Vector3(1,0,0);
 	// Update is called once per frame
 	void Update () {
-        float _rn = Random.Range(0, 100f);
         _sphere.transform.Rotate(_rotation);
         _rotation.x = Mathf.Sin(Time.time/2f);
         _rotation.y = Mathf.Sin(10 + Time.time/2f);

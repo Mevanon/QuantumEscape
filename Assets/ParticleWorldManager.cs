@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ParticleWorldManager : MonoBehaviour {
 
@@ -10,10 +11,24 @@ public class ParticleWorldManager : MonoBehaviour {
     public GameObject _prefab_QuantumEnemy;
     public GameObject _prefab_QuantumPowerUp;
     public LayerMask _qoMap;
+    public Slider _powerBar;
+    float _power = 100;
     Vector2 _anchor_topLeft = new Vector2(-100,250);
     Vector2 _anchor_botRight = new Vector2(100,-250);
-    // Use this for initialization
-    void Start () {
+    // ------------------------------------------------------------------------
+    public bool UserPower(int _amount)
+    {
+        if (_power >= _amount)
+        {
+            _power -= _amount;
+            _powerBar.value = _power;
+            return true;
+        }
+        return false;
+    }
+    // ------------------------------------------------------------------------
+    void Start ()
+    {
         // Generate World
         int _amountToSpawn = 500;
         List<Transform> _qoList = new List<Transform>();
@@ -29,15 +44,15 @@ public class ParticleWorldManager : MonoBehaviour {
         }
         for (int i = 0; i < _qoList.Count; i++)
         {
-            Collider2D[] _tList = Physics2D.OverlapCircleAll(_qoList[i].position, 10,_qoMap);
+            Collider2D[] _tList = Physics2D.OverlapCircleAll(_qoList[i].position, 15,_qoMap);
             GameObject _newWall = Instantiate(_prefab_QantumWall);
             _newWall.GetComponent<QuantumWall>().SetupWall(_qoList[i], _tList[0].transform);
         }
 
     }
-	
-	// Update is called once per frame
-	void Update () {
-		
-	}
+    // ------------------------------------------------------------------------
+	void Update ()
+    {
+
+    }
 }

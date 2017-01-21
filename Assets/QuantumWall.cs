@@ -7,7 +7,6 @@ public class QuantumWall : MonoBehaviour {
     Vector3 _rotation = new Vector3(0, 1, 0);
     Transform _QuantumObject1;
     Transform _QuantumObject2;
-    bool _setup = false;
     // Use this for initialization
     void Start () {
         /*
@@ -22,8 +21,6 @@ public class QuantumWall : MonoBehaviour {
         transform.position = _midpoint;
         transform.up = (_QuantumObject1.position - transform.position);
         transform.localScale = new Vector3(1,Vector2.Distance(_qo1.position,_qo2.position)/2f,1);
-        _setup = true;
-
     }
     // Update is called once per frame
     void Update () {
