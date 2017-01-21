@@ -16,9 +16,13 @@ public class Player : MonoBehaviour {
     bool _waveActive = false;
     bool _cooldownActive = false;
     float _cambuffer = 2f;
+    ParticleSystem _particleSystem;
+    ParticleSystem _tempParticleSystem;
+
     // Use this for initialization
     void Start () {
         _rigidBody = this.GetComponent<Rigidbody2D>();
+        _particleSystem = this.transform.GetComponentInChildren<ParticleSystem>();
 	}
 
     // ------------------------------------------------------------------------
@@ -41,7 +45,7 @@ public class Player : MonoBehaviour {
             {
                 //if is on ground:
                 _rigidBody.velocity = new Vector2(0, Mathf.Clamp(_rigidBody.velocity.y + _movementSpeed * 1.5f, 0f, 10f));
-                Debug.Log("Input: Jump");
+                //Debug.Log("Input: Jump");
             }
 
             if (Input.GetKeyDown(_key_wave))
@@ -52,23 +56,34 @@ public class Player : MonoBehaviour {
                     //Debug.Log("Input: Wave");
                     StartCoroutine(ExpandWave());
                     _waveActive = true;
+
+                    GameObject _newObject = Instantiate(_particleSystem.gameObject,this.transform.position,_particleSystem.transform.rotation);
+                    _tempParticleSystem = _newObject.GetComponent<ParticleSystem>();
+                    _tempParticleSystem.Emit(100);
                 }
             }
             // --
-            if (_momentum != Vector2.zero)
+            if (_momentum != Vector2.zero)  
             {
                 this.transform.Translate(_momentum * Time.deltaTime);
 
-                CorrectCamPos();
+                MoveCamera();
 
             }
             _roundPointer.transform.up = (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition) - (Vector2)_roundPointer.transform.position;
 
 
         }
+        if (_waveActive)
+        {
+            if (!_cooldownActive)
+            {
+
+            }
+        }
     }
     // ------------------------------------------------------------------------
-    void CorrectCamPos()
+    void MoveCamera()
     {
         float _dif = Mathf.Abs(transform.position.x - Camera.main.transform.position.x);
         Vector3 _newCamPos = Camera.main.transform.position;
@@ -89,35 +104,45 @@ public class Player : MonoBehaviour {
     // ------------------------------------------------------------------------
     IEnumerator ExpandWave()
     {
-        int _count = 0;
         Vector2 _velo = _rigidBody.velocity;
         float _currentWaveRange = 0f;
+
         _rigidBody.gravityScale = 0;
-        //Debug.Log("Wave !!!!");
         _rigidBody.velocity = Vector2.zero;
+
         _bodyObject.SetActive(false);
         _waveObject.SetActive(true);
+
         Vector2 _newPos = Vector2.zero;
 
         yield return new WaitForEndOfFrame();
 
-        //LineRenderer _lr = new LineRenderer();
-        //_lr.SetPosition(0, this.transform.position);
-
-        while (_count < 50)
+        while (_currentWaveRange < 5f)
         {
             _newPos = Vector2.zero;
-            //_lr.SetPosition(1, Camera.main.ScreenToWorldPoint(Input.mousePosition));
-           // Debug.Log(Input.GetKeyDown(_key_wave));
 
             if (Input.GetKeyDown(_key_wave))
             {
 
-                _newPos = Camera.main.ScreenToWorldPoint(Input.mousePosition) - this.transform.position;
-                _newPos = _newPos.normalized * _currentWaveRange;
-                _newPos += (Vector2) this.transform.position;
+                Vector2 _dir = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - this.transform.position).normalized;
+                _newPos = (Vector2) this.transform.position + (_dir * _currentWaveRange);
                 if (Physics2D.Raycast(_newPos, Vector2.zero).collider == null)
                 {
+                    // Change Particle Direction
+
+                    ParticleSystem.Particle[] _particleList = new ParticleSystem.Particle[_tempParticleSystem.main.maxParticles];
+
+                    int _pAmount = _tempParticleSystem.GetParticles(_particleList);
+                    Debug.Log("Particles: " + _pAmount + " / " + _particleList.Length);
+                    float _mag = 0f;
+                    for (int i = 0; i < _pAmount; i++)
+                    {
+                        _mag = _particleList[i].velocity.magnitude;
+                        _particleList[i].velocity = ((Vector3)_newPos - (Vector3)_particleList[i].position).normalized * 5f;
+                        _particleList[i].remainingLifetime *= 2;
+
+                    }
+                    _tempParticleSystem.SetParticles(_particleList, _pAmount);
                     yield return new WaitForEndOfFrame();
                     break;
                 }
@@ -128,7 +153,7 @@ public class Player : MonoBehaviour {
             _currentWaveRange += 0.15f;
             _roundPointer.transform.up = (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition) - (Vector2)_roundPointer.transform.position;
 
-            _count++;
+            //yield return new WaitForEndOfFrame();
 
             yield return new WaitForFixedUpdate();
         }
@@ -142,7 +167,7 @@ public class Player : MonoBehaviour {
         if (_newPos != Vector2.zero)
         {
             this.transform.position = _newPos;
-            CorrectCamPos();
+            MoveCamera();
         }
         _bodyObject.SetActive(true);
         _cooldownActive = true;
