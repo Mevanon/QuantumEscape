@@ -29,6 +29,9 @@ public class Player : MonoBehaviour {
     public LineRenderer _lineRenderer;
     bool _waveActive = false;
     bool _cooldownActive = false;
+    public bool _hasWavePower = true;
+    public bool _hasPlayerControl = true;
+    public bool _debug = false;
     ParticleSystem _particleSystem;
     ParticleSystem _tempParticleSystem;
     UnityArmatureComponent _armature;
@@ -45,7 +48,7 @@ public class Player : MonoBehaviour {
         UnityFactory.factory.LoadTextureAtlasData("MainChar/MainChar_tex");
         _armature = UnityFactory.factory.BuildArmatureComponent("Armature", null, null, transform.GetChild(0).gameObject);
         _armature.animation.timeScale  *= 0.5f;
-
+        _charState = CharState.falling;
         UpdateChar(CharState.standing,0);
     }
     // ------------------------------------------------------------------------
@@ -101,7 +104,7 @@ public class Player : MonoBehaviour {
         bool _onFloor = CheckForFloorUnderPlayer();
 
         // - Check For Wave Cooldown
-        if (!_cooldownActive && !_waveActive)
+        if (_hasWavePower && !_cooldownActive && !_waveActive)
         {
             // -- Check For Wave Input
             if (Input.GetKeyDown(_key_wave))
@@ -109,9 +112,11 @@ public class Player : MonoBehaviour {
                 StartCoroutine(ExpandWave());
             }
         }
+        // -- Activate Pointer with Control over Player
+        _roundPointer.SetActive(_hasPlayerControl);
 
-        // --
-        if (!_waveActive)
+        // -- Player Control
+        if (!_waveActive && _hasPlayerControl)
         {
             // -- -- Player Movement
             // - Input Horizontal
@@ -145,8 +150,7 @@ public class Player : MonoBehaviour {
 
             if (_onFloor)
             {
-                if (_horizontalMomentum != Vector2.zero)
-                {
+                if (_horizontalMomentum != Vector2.zero) {
                     UpdateChar(CharState.runing, Mathf.RoundToInt((_horizontalMomentum.x / Mathf.Abs(_horizontalMomentum.x))));
                 } else {
                     UpdateChar(CharState.standing, 0);
@@ -179,13 +183,13 @@ public class Player : MonoBehaviour {
         _waveActive = true;
 
         // -- Send Particle Wave
-        GameObject _newObject = Instantiate(_particleSystem.gameObject, this.transform.position, _particleSystem.transform.rotation);
+        /*GameObject _newObject = Instantiate(_particleSystem.gameObject, this.transform.position, _particleSystem.transform.rotation);
         if (_tempParticleSystem != null)
         {
             GameObject.Destroy(_tempParticleSystem.gameObject);
         }
         _tempParticleSystem = _newObject.GetComponent<ParticleSystem>();
-        _tempParticleSystem.Emit(100);
+        _tempParticleSystem.Emit(100);*/
 
         // -- Save Parameters
         Vector2 _old_velocity = _rigidBody.velocity;
@@ -213,8 +217,11 @@ public class Player : MonoBehaviour {
         {
             Vector2 _dir = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - this.transform.position).normalized;
             Vector2 _tPos = (Vector2)this.transform.position + (_dir * _currentWaveRange);
-            _lineRenderer.SetPosition(1,_tPos);
-            _lineRenderer.enabled = (true);
+            if (_debug)
+            {
+                _lineRenderer.SetPosition(1, _tPos);
+                _lineRenderer.enabled = (true);
+            }
             // -- Check For Manifestation Command
             //Debug.Log("SPACE_CHECK");
             if (_currentWaveRange >= 10f)
@@ -244,13 +251,14 @@ public class Player : MonoBehaviour {
                 // Assign new Position
                 _newPos = _tempPos;
                 // Change Particle Direction
-                SendParticlesTowards(_tempParticleSystem, _newPos);
+                // SendParticlesTowards(_tempParticleSystem, _newPos);
             }
         }
 
         // -- Restore Parameters
         _rigidBody.gravityScale = _old_gravity;
         _rigidBody.velocity = _old_velocity;
+
         //_bodyObject.transform.localScale = new Vector3(1, 1, 1);
         _roundPointer.transform.localScale = _old_roundPointer;
         _waveObject.transform.localScale = _old_waveObject;

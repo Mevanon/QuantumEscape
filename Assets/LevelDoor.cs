@@ -11,6 +11,8 @@ public class LevelDoor : MonoBehaviour {
 
     void OnTriggerEnter2D(Collider2D _collider)
     {
+        Debug.Log("Player in Door!: " + _doorID);
+
         if (_collider.CompareTag("Player") && GameMaster._gameMaster != null)
         {
             GameMaster._gameMaster.EnterLevelDoor(_doorID);

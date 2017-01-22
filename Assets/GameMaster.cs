@@ -16,7 +16,7 @@ public class GameMaster : MonoBehaviour {
     public static GameMaster _gameMaster;
     public Image _blackBlend;
     Animator _animator;
-    int _currentScene = 0;
+    int _currentScene = (int)Scenes.Labor_0;
 	// ---------------------------------------------------------------------------
 	void Start ()
     {
@@ -31,6 +31,7 @@ public class GameMaster : MonoBehaviour {
         StartCoroutine(BlendIn());
         _animator = transform.GetChild(0).GetComponent<Animator>();
 	}
+    // ------------------------------------------------------------------------
     public void EnterLevelDoor(int _id)
     {
         switch (_id)
@@ -46,7 +47,15 @@ public class GameMaster : MonoBehaviour {
                 }
                 break;
             case 1:
-                
+                // Labor_1 -&- Labor_2
+                if ((Scenes)_currentScene == Scenes.Labor_1)
+                {
+                    ChangeGameScene((int)Scenes.Labor_2);
+
+                } else {
+                    ChangeGameScene((int)Scenes.Labor_1);
+
+                }
 
                 break;
             case 2:
@@ -136,16 +145,20 @@ public class GameMaster : MonoBehaviour {
     IEnumerator ChangeScene(int _sceneToID)
     {
         yield return BlendOut();
-
+        yield return new WaitForEndOfFrame();
+        Debug.Log("ChangeScene:BlendetOut");
         UnityEngine.SceneManagement.SceneManager.LoadScene(_sceneToID);
         _currentScene = _sceneToID;
-
+        Debug.Log("ChangeScene:Changed");
+        yield return new WaitForEndOfFrame();
         yield return BlendIn();
+        Debug.Log("ChangeScene:BlendetIn");
+
     }
     // ---------------------------------------------------------------------------
     public void ChangeGameScene(int _sceneToID)
     {
-
+        Debug.Log("Changing Scene from " + _currentScene + " to " + _sceneToID);
         StartCoroutine(ChangeScene(_sceneToID));
     }
 }
