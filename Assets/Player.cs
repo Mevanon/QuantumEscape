@@ -6,134 +6,157 @@ using UnityEngine.UI;
 
 public class Player : MonoBehaviour {
 
+    enum CharState
+    {
+        standing = 0,
+        walking,
+        runing,
+        jumping,
+        falling
+    }
+    // --------------------------------
     KeyCode _key_left = KeyCode.A;
     KeyCode _key_right = KeyCode.D;
     KeyCode _key_jump = KeyCode.Space;
     KeyCode _key_wave = KeyCode.W;
     Rigidbody2D _rigidBody;
-    float _movementSpeed = 10;
+    float _movementSpeed = 100;
     public GameObject _waveObject;
     public GameObject _bodyObject;
     public GameObject _roundPointer;
     public Slider _coolDownSlider;
     public LayerMask _floorMask;
+    public LineRenderer _lineRenderer;
     bool _waveActive = false;
     bool _cooldownActive = false;
     ParticleSystem _particleSystem;
     ParticleSystem _tempParticleSystem;
     UnityArmatureComponent _armature;
+    CharState _charState;
 
     // ------------------------------------------------------------------------
     void Start () {
         _rigidBody = this.GetComponent<Rigidbody2D>();
         _particleSystem = this.transform.GetComponentInChildren<ParticleSystem>();
         _coolDownSlider = Camera.main.transform.GetChild(0).GetChild(0).GetComponent<Slider>();
+        _lineRenderer = this.GetComponent<LineRenderer>();
 
         UnityFactory.factory.LoadDragonBonesData("MainChar/MainChar_ske");
         UnityFactory.factory.LoadTextureAtlasData("MainChar/MainChar_tex");
         _armature = UnityFactory.factory.BuildArmatureComponent("Armature", null, null, transform.GetChild(0).gameObject);
         _armature.animation.timeScale  *= 0.5f;
 
-        _armature.animation.Play("standing");
+        UpdateChar(CharState.standing,0);
     }
-
+    // ------------------------------------------------------------------------
+    void UpdateChar(CharState _tState, int _dir)
+    {
+        // -- Ignore Repeated Calls
+        if (_charState == _tState)
+        {
+            return;
+        }
+        // -- Update State
+        _charState = _tState;
+        _armature.animation.Play(_tState.ToString());
+        // -- Update Direction
+        if (_dir < 0)
+        {
+            _armature.transform.localScale = XLookAt(_armature.transform.localScale, -1);
+        }
+        if (_dir > 0)
+        {
+            _armature.transform.localScale = XLookAt(_armature.transform.localScale, 1);
+        }
+        // -- State-Specific Stuff
+        switch (_tState)
+        {
+            case CharState.standing:
+                _armature.animation.timeScale = 0.5f;
+                break;
+            default:
+                _armature.animation.timeScale = 10f;
+                break;
+        }
+        // -- Voilà
+    }
+    // ------------------------------------------------------------------------
+    bool CheckForFloorUnderPlayer()
+    {
+        Vector3 _testpoint = transform.position;
+        _testpoint.y -= 3f;
+        RaycastHit2D _rch = (Physics2D.Raycast(_testpoint, new Vector3(0, 0, 1), Mathf.Infinity, _floorMask));
+        if (_rch.collider != null)
+        {
+            // -- Floor Detected
+            //Debug.Log("OnFlooR!");
+            return true;
+        }
+        return false;
+    }
     // ------------------------------------------------------------------------
     void Update()
     {
         // -- Floor Check
-        bool _onFloor = false;
-        Vector3 _testpoint = transform.position;
-        _testpoint.y -= 2.6f;
-        RaycastHit2D _rch = (Physics2D.Raycast(transform.position, Vector2.zero, Mathf.Infinity, _floorMask));
-        if (_rch.collider != null)
+        bool _onFloor = CheckForFloorUnderPlayer();
+
+        // - Check For Wave Cooldown
+        if (!_cooldownActive && !_waveActive)
         {
-            // -- Floor Detected
-            _onFloor = true;
-            Debug.Log("OnFlooR!");
+            // -- Check For Wave Input
+            if (Input.GetKeyDown(_key_wave))
+            {
+                StartCoroutine(ExpandWave());
+            }
         }
+
         // --
         if (!_waveActive)
         {
-            Vector2 _momentum = Vector2.zero;
-            // --
+            // -- -- Player Movement
+            // - Input Horizontal
+            Vector2 _horizontalMomentum = Vector2.zero;
             if (Input.GetKey(_key_left))
             {
-                _momentum.x -= _movementSpeed;
+                _horizontalMomentum.x -= _movementSpeed;
             }
             if (Input.GetKey(_key_right))
             {
-                _momentum.x += _movementSpeed;
+                _horizontalMomentum.x += _movementSpeed;
             }
+            // - Apply Horizontal
+            _rigidBody.AddForce(_horizontalMomentum);
 
-            if (Input.GetKeyDown(_key_jump))
+            // - Input Jump
+            if (_onFloor)
             {
-                //if is on ground:
-                if (_onFloor)
+                if (Input.GetKeyDown(_key_jump))
                 {
-                    _rigidBody.velocity = new Vector2(0, Mathf.Clamp(_rigidBody.velocity.y + _movementSpeed * 1.5f, 0f, 10f));
-                    //_onFloor = false;
-
+                    _rigidBody.AddForce(new Vector2(0, _movementSpeed * 25f));
+                    UpdateChar(CharState.jumping, 0);
+                    _onFloor = false;
                 }
-                //Debug.Log("Input: Jump");
-            }
-
-            if (Input.GetKeyDown(_key_wave))
-            {
-                // Start Wave
-                if (!_cooldownActive)
-                {
-                    //Debug.Log("Input: Wave");
-                    StartCoroutine(ExpandWave());
-                    _waveActive = true;
-
-                    GameObject _newObject = Instantiate(_particleSystem.gameObject,this.transform.position,_particleSystem.transform.rotation);
-                    _tempParticleSystem = _newObject.GetComponent<ParticleSystem>();
-                    _tempParticleSystem.Emit(100);
-                }
-            }
-            // --
-            if (_momentum != Vector2.zero)
-            {
-                //this.transform.Translate(_momentum * Time.deltaTime); // Legacy
-                if (!_onFloor) {
-                    _rigidBody.velocity += new Vector2(0,-1f);
-                }
-                _rigidBody.velocity = _momentum;// * Time.deltaTime;
-                if (!_armature.animation.lastAnimationName.Equals("runing"))
-                {
-                    _armature.animation.timeScale = 10f;
-                    _armature.animation.Play("runing");
-                    if (_momentum.x < 0)
-                    {
-                        _armature.transform.localScale = XLookAt(_armature.transform.localScale, -1);
-                    }
-                    else {
-                        _armature.transform.localScale = XLookAt(_armature.transform.localScale, 1);
-                    }
-                }
-                MoveCamera();
-
             } else {
-
-                if (_armature.animation.lastAnimationName != null && !_armature.animation.lastAnimationName.Equals("standing"))
-                {
-                    _rigidBody.velocity = Vector3.zero;
-
-                    _armature.animation.timeScale = 0.5f;
-                    _armature.animation.Play("standing");
-                }
+                UpdateChar(CharState.falling, 0);
             }
+
+            // - Rotate the Round Pointer
             _roundPointer.transform.up = (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition) - (Vector2)_roundPointer.transform.position;
 
-
-        }
-        if (_waveActive)
-        {
-            if (!_cooldownActive)
+            if (_onFloor)
             {
-
+                if (_horizontalMomentum != Vector2.zero)
+                {
+                    UpdateChar(CharState.runing, Mathf.RoundToInt((_horizontalMomentum.x / Mathf.Abs(_horizontalMomentum.x))));
+                } else {
+                    UpdateChar(CharState.standing, 0);
+                }
             }
         }
+
+        // -- Camera Follow
+        MoveCamera();
+
     }
     // ------------------------------------------------------------------------
     Vector3 XLookAt(Vector3 _v, float _dir)
@@ -144,94 +167,122 @@ public class Player : MonoBehaviour {
     // ------------------------------------------------------------------------
     void MoveCamera()
     {
-        /*float _dif = Mathf.Abs(transform.position.x - Camera.main.transform.position.x);*/
         Vector3 _newCamPos = Camera.main.transform.position;
 
-        _newCamPos.x = transform.position.x; // Static Debug
-        /*
-        if (_dif > (_cambuffer * 2))
-        {
-            _newCamPos.x = transform.position.x;
-        } else if (_dif > _cambuffer)
-        {
-            _newCamPos.x += (_dif-_cambuffer);
-        }
-        */
-        Camera.main.transform.position = _newCamPos;
+        _newCamPos.x = transform.position.x; // Static Horizontal Follow
 
+        Camera.main.transform.position = _newCamPos;
     }
     // ------------------------------------------------------------------------
     IEnumerator ExpandWave()
     {
-        Vector2 _velo = _rigidBody.velocity;
-        float _currentWaveRange = 0f;
+        _waveActive = true;
 
+        // -- Send Particle Wave
+        GameObject _newObject = Instantiate(_particleSystem.gameObject, this.transform.position, _particleSystem.transform.rotation);
+        if (_tempParticleSystem != null)
+        {
+            GameObject.Destroy(_tempParticleSystem.gameObject);
+        }
+        _tempParticleSystem = _newObject.GetComponent<ParticleSystem>();
+        _tempParticleSystem.Emit(100);
+
+        // -- Save Parameters
+        Vector2 _old_velocity = _rigidBody.velocity;
+        float _old_gravity = _rigidBody.gravityScale;
+        Vector3 _old_roundPointer = _roundPointer.transform.localScale;
+        Vector3 _old_waveObject = _waveObject.transform.localScale;
+
+        // -- Setup Wave-Mode
         _rigidBody.gravityScale = 0;
         _rigidBody.velocity = Vector2.zero;
 
         _bodyObject.SetActive(false);
         _waveObject.SetActive(true);
+        float _currentWaveRange = 0f;
+        float _timeStart = Time.time;
+        Vector2 _newPos = transform.position;
+        _lineRenderer.SetPosition(0, (Vector2) transform.position);
 
-        Vector2 _newPos = Vector2.zero;
+        // - Wait' a frame' so the second GetKeyDown(.) is not triggered by the current Keystroke
+        while (Input.GetKey(_key_wave))
+        { yield return new WaitForEndOfFrame(); }
 
-        yield return new WaitForEndOfFrame();
-
-        while (_currentWaveRange < 5f)
+        // --- Wave Expansion Loop
+        while (!Input.GetKey(_key_wave))
         {
-            _newPos = Vector2.zero;
-
-            if (Input.GetKeyDown(_key_wave))
+            Vector2 _dir = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - this.transform.position).normalized;
+            Vector2 _tPos = (Vector2)this.transform.position + (_dir * _currentWaveRange);
+            _lineRenderer.SetPosition(1,_tPos);
+            _lineRenderer.enabled = (true);
+            // -- Check For Manifestation Command
+            //Debug.Log("SPACE_CHECK");
+            if (_currentWaveRange >= 10f)
             {
-
-                Vector2 _dir = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - this.transform.position).normalized;
-                _newPos = (Vector2) this.transform.position + (_dir * _currentWaveRange);
-                if (Physics2D.Raycast(_newPos, Vector2.zero).collider == null)
-                {
-                    // Change Particle Direction
-
-                    ParticleSystem.Particle[] _particleList = new ParticleSystem.Particle[_tempParticleSystem.main.maxParticles];
-
-                    int _pAmount = _tempParticleSystem.GetParticles(_particleList);
-                    //Debug.Log("Particles: " + _pAmount + " / " + _particleList.Length);
-                    float _mag = 0f;
-                    for (int i = 0; i < _pAmount; i++)
-                    {
-                        _mag = _particleList[i].velocity.magnitude;
-                        _particleList[i].velocity = ((Vector3)_newPos - (Vector3)_particleList[i].position).normalized * 5f;
-                        _particleList[i].remainingLifetime *= 2;
-
-                    }
-                    _tempParticleSystem.SetParticles(_particleList, _pAmount);
-                    yield return new WaitForEndOfFrame();
-                    break;
-                }
+                break;
             }
-           // --
+
+           // -- Progress Expansion
             _waveObject.transform.localScale += new Vector3(0.1f, 0.1f, 0.1f);
             _roundPointer.transform.localScale = _waveObject.transform.localScale * 0.7f;
             _currentWaveRange += 0.15f;
             _roundPointer.transform.up = (Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition) - (Vector2)_roundPointer.transform.position;
 
-            //yield return new WaitForEndOfFrame();
-
-            yield return new WaitForFixedUpdate();
+            yield return new WaitForEndOfFrame();
         }
-
-        _rigidBody.gravityScale = 1;
-        _rigidBody.velocity = _velo;
-        //_bodyObject.transform.localScale = new Vector3(1, 1, 1);
-        _roundPointer.transform.localScale = new Vector3(2, 2, 2);
-        _waveObject.transform.localScale = new Vector3(1, 1, 1);
-        _waveObject.SetActive(false);
-        if (_newPos != Vector2.zero)
+        _lineRenderer.enabled = (false);
+        if (Input.GetKey(_key_wave))
         {
-            this.transform.position = _newPos;
-            MoveCamera();
+            Debug.Log("#################");
+            Vector2 _dir = (Camera.main.ScreenToWorldPoint(Input.mousePosition) - this.transform.position).normalized;
+            Vector2 _tempPos = (Vector2)this.transform.position + (_dir * _currentWaveRange);
+
+            // - Check if target Point is obstructed
+            RaycastHit2D[] _castHits = Physics2D.RaycastAll(_newPos, Vector2.zero);
+            if (_castHits == null || _castHits.Length == 0 || (_castHits.Length == 1 && _castHits[0].collider.gameObject == this.gameObject))
+            {
+                // Assign new Position
+                _newPos = _tempPos;
+                // Change Particle Direction
+                SendParticlesTowards(_tempParticleSystem, _newPos);
+            }
         }
+
+        // -- Restore Parameters
+        _rigidBody.gravityScale = _old_gravity;
+        _rigidBody.velocity = _old_velocity;
+        //_bodyObject.transform.localScale = new Vector3(1, 1, 1);
+        _roundPointer.transform.localScale = _old_roundPointer;
+        _waveObject.transform.localScale = _old_waveObject;
+
+        // -- Re-Engage Char-Mode
+        _waveObject.SetActive(false);
         _bodyObject.SetActive(true);
+        _waveActive = false;
+
+        // -- Apply Possible Position Change (initiated to old location)
+        this.transform.position = _newPos;
+        MoveCamera();
+
+        // -- Start Cooldown
         _cooldownActive = true;
         StartCoroutine(Wave_Cooldown());
-        _waveActive = false;
+    }
+    // ------------------------------------------------------------------------
+    void SendParticlesTowards(ParticleSystem _particleSystem, Vector2 _target)
+    {
+        ParticleSystem.Particle[] _particleList = new ParticleSystem.Particle[_particleSystem.main.maxParticles];
+        int _pAmount = _particleSystem.GetParticles(_particleList);
+        float _mag = 0f;
+        for (int i = 0; i < _pAmount; i++)
+        {
+            _mag = _particleList[i].velocity.magnitude;
+            _particleList[i].velocity = Vector3.zero;//
+            _particleList[i].velocity = (((Vector2)_target - (Vector2)_particleList[i].position).normalized);// * 5f;
+            _particleList[i].remainingLifetime *= 2;
+
+        }
+        _particleSystem.SetParticles(_particleList, _pAmount);
     }
     // ------------------------------------------------------------------------
     IEnumerator Wave_Cooldown()

@@ -4,6 +4,15 @@ using UnityEngine;
 using UnityEngine.UI;
 
 public class GameMaster : MonoBehaviour {
+    public enum Scenes
+    {
+        MainMenu,
+        Labor_Start,
+        QuantumWorld,
+        Labor_0,
+        Labor_1,
+        Labor_2
+    };
     public static GameMaster _gameMaster;
     public Image _blackBlend;
     Animator _animator;
@@ -22,6 +31,31 @@ public class GameMaster : MonoBehaviour {
         StartCoroutine(BlendIn());
         _animator = transform.GetChild(0).GetComponent<Animator>();
 	}
+    public void EnterLevelDoor(int _id)
+    {
+        switch (_id)
+        {
+            case 0:
+                // Labor_0 -&- Labor_1
+                if ((Scenes)_currentScene == Scenes.Labor_0)
+                {
+                    ChangeGameScene((int)Scenes.Labor_1);
+
+                } else {
+                    ChangeGameScene((int)Scenes.Labor_0);
+                }
+                break;
+            case 1:
+                
+
+                break;
+            case 2:
+
+
+                break;
+            default: break;
+        }
+    }
 	// ---------------------------------------------------------------------------
 	void Update () {
 
