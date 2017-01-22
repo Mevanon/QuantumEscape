@@ -45,20 +45,29 @@ public class QPlayer : MonoBehaviour {
     {
         _rigidBody = this.GetComponent<Rigidbody2D>();
         _lineRenderer = this.GetComponent<LineRenderer>();
-        _targetList = new List<DirectionTarget>();
+        //_targetList = new List<DirectionTarget>();
 
     }
 
     // ------------------------------------------------------------------------
     void UpdateDirectionPointers()
     {
+        if (_targetList == null)
+        {
+            Debug.Log("TargetList Null!");
+        }
+        else {
+            Debug.Log("TTargetlist: " + _targetList.Count);
+
+        }
         foreach (DirectionTarget _item in _targetList)
         {
             if (_item._dirPointer == null)
             {
-                _item._dirPointer = (Instantiate(_prefab_dirPointer, transform) as GameObject).transform;
+                _item._dirPointer = (Instantiate(_prefab_dirPointer, this.transform) as GameObject).transform;
                 Debug.Log("Creating new Dirpointer");
             }
+
             _item._dirPointer.localPosition = Vector3.zero;
             Debug.Log("Dirpointer Update!");
 
@@ -81,6 +90,7 @@ public class QPlayer : MonoBehaviour {
     // ------------------------------------------------------------------------
     void Update ()
     {
+        Debug.Log("Player Update!");
         UpdateDirectionPointers();
         // --
         if (!_waveActive)
@@ -120,7 +130,7 @@ public class QPlayer : MonoBehaviour {
         }
         if (_collision.collider.CompareTag("PowerUp"))
         {
-            GameMaster._gameMaster.ChangeGameScene((int)GameMaster.Scenes.Labor_0);
+            GameMaster._gameMaster.ChangeGameScene(GameMaster.Scenes.Explosion);
         }
     }
     // ------------------------------------------------------------------------

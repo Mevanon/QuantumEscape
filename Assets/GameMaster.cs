@@ -9,12 +9,14 @@ public class GameMaster : MonoBehaviour {
         MainMenu,
         Labor_Start,
         QuantumWorld,
+        Explosion,
         Labor_0,
         Labor_1,
-        Labor_2
+        TestLevel
     };
     public static GameMaster _gameMaster;
     public Image _blackBlend;
+    bool _escMenu = false;
     Animator _animator;
     int _currentScene = (int)Scenes.Labor_0;
 	// ---------------------------------------------------------------------------
@@ -40,20 +42,20 @@ public class GameMaster : MonoBehaviour {
                 // Labor_0 -&- Labor_1
                 if ((Scenes)_currentScene == Scenes.Labor_0)
                 {
-                    ChangeGameScene((int)Scenes.Labor_1);
+                    ChangeGameScene(Scenes.Labor_1);
 
                 } else {
-                    ChangeGameScene((int)Scenes.Labor_0);
+                    ChangeGameScene(Scenes.Labor_0);
                 }
                 break;
             case 1:
-                // Labor_1 -&- Labor_2
-                if ((Scenes)_currentScene == Scenes.Labor_1)
+                // LCutscene -&- Labor_2
+                if ((Scenes)_currentScene == Scenes.Explosion)
                 {
-                    ChangeGameScene((int)Scenes.Labor_2);
+                    ChangeGameScene(Scenes.Labor_1);
 
                 } else {
-                    ChangeGameScene((int)Scenes.Labor_1);
+                    ChangeGameScene(Scenes.Explosion);
 
                 }
 
@@ -70,8 +72,19 @@ public class GameMaster : MonoBehaviour {
 
         if (_currentScene > 0 && Input.GetKey(KeyCode.Escape))
         {
-            _animator.Play("EscMenu_Show");
-           // Time.timeScale = 0;
+            if (_escMenu)
+            {
+                _animator.Play("EscMenu_Hide");
+                Time.timeScale = 1f;
+                _escMenu = false;
+
+            } else {
+                _animator.Play("EscMenu_Show");
+                Time.timeScale = 0f;
+                _escMenu = true;
+
+            }
+            // Time.timeScale = 0;
         }
     }
 
@@ -156,8 +169,9 @@ public class GameMaster : MonoBehaviour {
 
     }
     // ---------------------------------------------------------------------------
-    public void ChangeGameScene(int _sceneToID)
+    public void ChangeGameScene(Scenes _tScene)
     {
+        int _sceneToID = (int)_tScene;
         Debug.Log("Changing Scene from " + _currentScene + " to " + _sceneToID);
         StartCoroutine(ChangeScene(_sceneToID));
     }

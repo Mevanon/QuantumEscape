@@ -17,8 +17,8 @@ public class IntroLevelManager : MonoBehaviour {
     IEnumerator Cutscene()
     {
         
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(10f);
         Debug.Log("Loadquantum");
-        GameMaster._gameMaster.ChangeGameScene((int)GameMaster.Scenes.QuantumWorld);
+        GameMaster._gameMaster.ChangeGameScene(GameMaster.Scenes.QuantumWorld);
     }
 }

@@ -28,7 +28,7 @@ public class MenuController : MonoBehaviour {
                 // -- New Game
 
                 _animator.Play("Menu_Hide");
-                GameMaster._gameMaster.ChangeGameScene((int)GameMaster.Scenes.Labor_Start);
+                GameMaster._gameMaster.ChangeGameScene(GameMaster.Scenes.Labor_Start);
 
                 break;
             case 1:
